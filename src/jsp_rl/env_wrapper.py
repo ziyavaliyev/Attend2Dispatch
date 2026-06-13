@@ -2,6 +2,10 @@ import random
 import numpy as np
 import gymnasium as gym
 import torch
+import matplotlib
+import matplotlib.pyplot as plt
+if not hasattr(plt.cm, "get_cmap"):
+    plt.cm.get_cmap = matplotlib.colormaps.get_cmap
 from graph_jsp_env.disjunctive_graph_jsp_env import DisjunctiveGraphJspEnv
 from jsp_rl.utils import build_graph_node_features, clb
 

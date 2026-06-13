@@ -13,7 +13,10 @@ import torch.optim as optim
 import gymnasium as gym
 from torch.utils.tensorboard import SummaryWriter
 import wandb
-
+import matplotlib
+import matplotlib.pyplot as plt
+if not hasattr(plt.cm, "get_cmap"):
+    plt.cm.get_cmap = matplotlib.colormaps.get_cmap
 from jsp_rl.utils import generate_jsp_instance
 from jsp_rl.rl_model import JSPGATActorCritic
 from graph_jsp_env.disjunctive_graph_jsp_env import DisjunctiveGraphJspEnv
