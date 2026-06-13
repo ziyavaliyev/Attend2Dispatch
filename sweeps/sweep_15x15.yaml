@@ -1,0 +1,34 @@
+name: ppo_15x15
+program: scripts/train_ppo.py
+method: grid
+
+metric:
+  name: val/best_optimality_gap_percent
+  goal: minimize
+
+parameters:
+  representation:
+    values:
+      - handcrafted
+      - raw_graph
+      - graph_features
+      - trained_encoder_weights/15x15/gae_gcn.pt
+      - trained_encoder_weights/15x15/gae_egc.pt
+      - trained_encoder_weights/15x15/gae_gin.pt
+      - trained_encoder_weights/15x15/gae_pna.pt
+      - trained_encoder_weights/15x15/gae_gat.pt
+      - trained_encoder_weights/15x15/gae_gatv2.pt
+      - trained_encoder_weights/15x15/vgae_gcn.pt
+      - trained_encoder_weights/15x15/vgae_egc.pt
+      - trained_encoder_weights/15x15/vgae_gin.pt
+      - trained_encoder_weights/15x15/vgae_pna.pt
+      - trained_encoder_weights/15x15/vgae_gat.pt
+      - trained_encoder_weights/15x15/vgae_gatv2.pt
+
+command:
+  - ${env}
+  - python
+  - ${program}
+  - --config
+  - configs/ppo_15x15.yaml
+  - ${args}

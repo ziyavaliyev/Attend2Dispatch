@@ -1,0 +1,48 @@
+seed: 42
+
+data:
+  n_jobs: 10
+  n_machines: 10
+  n_train_instances: 1000
+  n_val_instances: 100
+  min_duration: 1
+  max_duration: 99
+  val_dataset_path: data/val_dataset_10x10.pt
+
+observation: # possible: raw_graph, encoder, handcrafted, graph_features
+  mode: "handcrafted"
+
+encoder: # relevant only if observation.mode==encoder
+  path: trained_encoder_weights/10x10/gae_egc.pt
+  sample_latent: false   # false = use mu, true = sample mu + eps * std -> relevant only if vgae encoder
+
+model:
+  hidden_dim: 128
+  n_heads: 4
+  n_layers: 3
+  dropout: 0.1
+  bc_checkpoint: runs/bc_10x10_transformer/best_model.pt
+
+ppo:
+  total_timesteps: 1000000
+  num_envs: 8
+  num_steps: 128
+  learning_rate: 0.0003
+  anneal_lr: true
+  gamma: 0.99
+  gae_lambda: 0.95
+  num_minibatches: 4
+  update_epochs: 4
+  norm_adv: true
+  clip_coef: 0.2
+  clip_vloss: true
+  ent_coef: 0.03
+  vf_coef: 0.5
+  max_grad_norm: 0.5
+  target_kl: null
+
+logging:
+  use_wandb: false
+  project: Attend2Dispatch
+  run_name: ppo_10x10
+  eval_every: 10000
