@@ -1,13 +1,18 @@
 import torch
 import torch.nn as nn
 from torch.distributions.categorical import Categorical
+from torch_geometric.nn import GATv2Conv
 
-
-class JSPActorCritic(nn.Module):
+class JSPGATActorCritic(nn.Module):
     def __init__(
         self,
-        token_dim=16,
+        token_dim,
+        graph_feat_dim,
         hidden_dim=128,
+        gat_hidden_dim=128,
+        gat_out_dim=128,
+        gat_heads=4,
+        gat_layers=2,
         n_heads=4,
         n_layers=3,
         dropout=0.1,
@@ -15,7 +20,54 @@ class JSPActorCritic(nn.Module):
     ):
         super().__init__()
 
-        self.input_proj = nn.Linear(token_dim, hidden_dim)
+        self.n_tokens = n_tokens
+        self.graph_feat_dim = graph_feat_dim
+
+        self.gat_layers = nn.ModuleList()
+
+        if gat_layers == 1:
+            self.gat_layers.append(
+                GATv2Conv(
+                    graph_feat_dim,
+                    gat_out_dim,
+                    heads=gat_heads,
+                    concat=False,
+                    dropout=dropout,
+                )
+            )
+        else:
+            self.gat_layers.append(
+                GATv2Conv(
+                    graph_feat_dim,
+                    gat_hidden_dim,
+                    heads=gat_heads,
+                    concat=True,
+                    dropout=dropout,
+                )
+            )
+
+            for _ in range(gat_layers - 2):
+                self.gat_layers.append(
+                    GATv2Conv(
+                        gat_hidden_dim * gat_heads,
+                        gat_hidden_dim,
+                        heads=gat_heads,
+                        concat=True,
+                        dropout=dropout,
+                    )
+                )
+
+            self.gat_layers.append(
+                GATv2Conv(
+                    gat_hidden_dim * gat_heads,
+                    gat_out_dim,
+                    heads=gat_heads,
+                    concat=False,
+                    dropout=dropout,
+                )
+            )
+
+        self.input_proj = nn.Linear(gat_out_dim, hidden_dim)
 
         self.pos_embedding = nn.Parameter(torch.zeros(1, n_tokens, hidden_dim))
         nn.init.normal_(self.pos_embedding, std=0.02)
@@ -41,10 +93,43 @@ class JSPActorCritic(nn.Module):
             nn.GELU(),
             nn.Linear(hidden_dim, 1),
         )
+
         self.critic_value = nn.Linear(hidden_dim, 1)
 
+    def _edge_index_from_A(self, A):
+        src, dst = torch.nonzero(A > 0, as_tuple=True)
+
+        if src.numel() == 0:
+            return torch.empty((2, 0), dtype=torch.long, device=A.device)
+
+        return torch.stack([src, dst], dim=0)
+
+    def graph_encode(self, tokens):
+        B, T, D = tokens.shape
+
+        A_batch = tokens[:, :, :self.n_tokens]
+        X_batch = tokens[:, :, self.n_tokens:]
+
+        zs = []
+
+        for b in range(B):
+            A = A_batch[b]
+            x = X_batch[b]
+            edge_index = self._edge_index_from_A(A)
+
+            z = x
+            for i, conv in enumerate(self.gat_layers):
+                z = conv(z, edge_index)
+                if i < len(self.gat_layers) - 1:
+                    z = torch.relu(z)
+
+            zs.append(z)
+
+        return torch.stack(zs, dim=0)
+
     def encode(self, tokens):
-        z = self.input_proj(tokens)
+        z = self.graph_encode(tokens)
+        z = self.input_proj(z)
         z = z + self.pos_embedding[:, : z.size(1), :]
         return self.encoder(z)
 
@@ -75,32 +160,3 @@ class JSPActorCritic(nn.Module):
             action = dist.sample()
 
         return action, dist.log_prob(action), dist.entropy(), value
-
-    def load_bc_actor(self, path, strict=False):
-        state = torch.load(path, map_location="cpu")
-
-        mapping = {
-            "input_proj.": "input_proj.",
-            "encoder.": "encoder.",
-            "actor_head.": "actor_head.",
-            "pos_embedding": "pos_embedding",
-        }
-
-        own = self.state_dict()
-        loaded = {}
-
-        for old_k, v in state.items():
-            for src, dst in mapping.items():
-                if old_k.startswith(src):
-                    new_k = old_k.replace(src, dst, 1)
-
-                    if new_k in own and own[new_k].shape == v.shape:
-                        loaded[new_k] = v
-
-        own.update(loaded)
-        self.load_state_dict(own, strict=False)
-
-        print(f"Loaded {len(loaded)} tensors from BC checkpoint.")
-        if len(loaded) == 0:
-            print("BC keys example:", list(state.keys())[:10])
-            print("RL keys example:", list(own.keys())[:10])

@@ -1,5 +1,5 @@
 [project]
-name = "RLFormerJSP"
+name = "Attend2Dispatch"
 version = "0.1.0"
 description = "Attention-based Reinforcement Learning for Job Shop Scheduling"
 requires-python = ">=3.10"

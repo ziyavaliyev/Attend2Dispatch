@@ -42,7 +42,7 @@ ppo:
   target_kl: null
 
 logging:
-  use_wandb: false
+  use_wandb: true
   project: Attend2Dispatch
   run_name: ppo_10x10
   eval_every: 10000

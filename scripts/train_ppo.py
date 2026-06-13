@@ -15,7 +15,7 @@ from torch.utils.tensorboard import SummaryWriter
 import wandb
 
 from jsp_rl.utils import generate_jsp_instance
-from jsp_rl.rl_model import JSPActorCritic
+from jsp_rl.rl_model import JSPGATActorCritic
 from graph_jsp_env.disjunctive_graph_jsp_env import DisjunctiveGraphJspEnv
 from jsp_rl.env_wrapper import (
     make_graph_jsp_env,
@@ -289,13 +289,9 @@ def main():
     n_tokens = cfg["data"]["n_jobs"] * cfg["data"]["n_machines"]
 
     token_dim = envs.single_observation_space.shape[-1]
-    agent = JSPActorCritic(
+    agent = JSPGATActorCritic(
         token_dim=token_dim,
-        hidden_dim=cfg["model"]["hidden_dim"],
-        n_heads=cfg["model"]["n_heads"],
-        n_layers=cfg["model"]["n_layers"],
-        dropout=cfg["model"]["dropout"],
-        n_tokens=n_tokens,
+        graph_feat_dim=token_dim - n_tokens,
     ).to(device)
 
     """bc_ckpt = cfg["model"].get("bc_checkpoint", None)

@@ -1,3 +1,4 @@
-src/__pycache__
+__pycache__
 runs
 wandb
+Attend2Dispatch.egg-info

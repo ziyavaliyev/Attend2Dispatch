@@ -3,7 +3,7 @@ import numpy as np
 import gymnasium as gym
 import torch
 from graph_jsp_env.disjunctive_graph_jsp_env import DisjunctiveGraphJspEnv
-from jsp_rl.utils import build_graph_node_features
+from jsp_rl.utils import build_graph_node_features, clb
 
 def make_graph_jsp_env(instances, cfg, seed, encoder=None, latent_dim=None, device="cpu", sample_latent=False,):
     env = DisjunctiveGraphJspEnv(
@@ -62,7 +62,7 @@ class ObservationWrapper(gym.ObservationWrapper):
         elif self.obs_mode == "graph_features":
             obs_dim = T + self.instance.shape[2] + 2
         elif self.obs_mode == "handcrafted":
-            obs_dim = 16
+            obs_dim = 132
         else:
             raise ValueError(f"Unknown obs_mode: {self.obs_mode}")
         
@@ -181,7 +181,7 @@ class ObservationWrapper(gym.ObservationWrapper):
         )
         return np.concatenate([A, x_np], axis=1).astype(np.float32)
 
-    def _handcrafted_features(self, obs):
+    """def _handcrafted_features(self, obs):
         state = self.state
         T = obs.shape[0]
         n_jobs = self.instance.shape[1]
@@ -196,6 +196,7 @@ class ObservationWrapper(gym.ObservationWrapper):
             1.0,
         )
         for op_id in range(T):
+
             job_id = op_id // n_machines
             op_pos = op_id % n_machines
             machine_id = int(machine_order[job_id, op_pos])
@@ -203,48 +204,15 @@ class ObservationWrapper(gym.ObservationWrapper):
             ready = float(valid_mask[op_id])
             predecessor_done = 1.0
             if op_pos > 0:
-                predecessor_done = float(
-                    state["scheduled"][op_id - 1]
-                )
-
-            successor_exists = float(
-                op_pos < n_machines - 1
-            )
-
-            job_progress = (
-                float(state["job_next_op"][job_id])
-                / n_machines
-            )
-
-            op_position = (
-                float(op_pos)
-                / max(n_machines - 1, 1)
-            )
-
-            machine_id_norm = (
-                float(machine_id)
-                / max(n_machines - 1, 1)
-            )
-
-            job_id_norm = (
-                float(job_id)
-                / max(n_jobs - 1, 1)
-            )
-
-            job_available = (
-                float(state["job_available"][job_id])
-                / current_makespan
-            )
-
-            machine_available = (
-                float(state["machine_available"][machine_id])
-                / current_makespan
-            )
-
-            current_op_pointer = int(
-                state["job_next_op"][job_id]
-            )
-
+                predecessor_done = float(state["scheduled"][op_id - 1])
+            successor_exists = float(op_pos < n_machines - 1)
+            job_progress = (float(state["job_next_op"][job_id]) / n_machines)
+            op_position = (float(op_pos) / max(n_machines - 1, 1))
+            machine_id_norm = (float(machine_id) / max(n_machines - 1, 1))
+            job_id_norm = (float(job_id) / max(n_jobs - 1, 1))
+            job_available = (float(state["job_available"][job_id]) / current_makespan)
+            machine_available = (float(state["machine_available"][machine_id]) / current_makespan)
+            current_op_pointer = int(state["job_next_op"][job_id])
             tokens[op_id] = np.array(
                 [
                     job_id_norm,
@@ -271,10 +239,10 @@ class ObservationWrapper(gym.ObservationWrapper):
                 ],
                 dtype=np.float32,
             )
-        return tokens
+        return tokens"""
     
     def observation(self, obs):
-        if self.obs_mode == "encoder":
+        """if self.obs_mode == "encoder":
             return self._encode_obs(obs)
 
         if self.obs_mode == "raw_graph":
@@ -286,5 +254,128 @@ class ObservationWrapper(gym.ObservationWrapper):
         if self.obs_mode == "handcrafted":
             return self._handcrafted_features(obs)
 
-        raise ValueError(f"Unknown obs_mode: {self.obs_mode}")
+        raise ValueError(f"Unknown obs_mode: {self.obs_mode}")"""
+        state = self.state
+        T = obs.shape[0]
+        n_jobs = self.instance.shape[1]
+        n_machines = self.instance.shape[2]
+
+        machine_order = self.instance[0]
+        proc_times = self.instance[1].astype(np.float32)
+
+        max_duration = max(float(proc_times.max()), 1.0)
+        total_work = max(float(proc_times.sum()), 1.0)
+        job_total_work = proc_times.sum(axis=1)
+        machine_total_work = np.zeros(n_machines, dtype=np.float32)
+
+        for j in range(n_jobs):
+            for k in range(n_machines):
+                machine_total_work[int(machine_order[j, k])] += proc_times[j, k]
+
+        max_job_work = max(float(job_total_work.max()), 1.0)
+        max_machine_work = max(float(machine_total_work.max()), 1.0)
+        job_prefix = np.cumsum(proc_times, axis=1)
+        A = obs[:, :T]
+        X = obs[:, T:]
+        clb_values = clb(A, X).reshape(-1)
+
+        valid_mask = self.env.unwrapped.valid_action_mask()
+
+        current_makespan = max(float(np.max(state["machine_available"])), 1.0)
+        time_scale = max(current_makespan, max_job_work, max_machine_work, 1.0)
+
+        tokens = np.zeros((T, 32), dtype=np.float32)
+
+        for op_id in range(T):
+            job_id = op_id // n_machines
+            op_pos = op_id % n_machines
+            machine_id = int(machine_order[job_id, op_pos])
+            duration = float(proc_times[job_id, op_pos])
+
+            scheduled = float(state["scheduled"][op_id])
+            ready = float(valid_mask[op_id])
+
+            predecessor_done = 1.0 if op_pos == 0 else float(state["scheduled"][op_id - 1])
+            successor_exists = float(op_pos < n_machines - 1)
+
+            job_progress = float(state["job_next_op"][job_id]) / n_machines
+            op_position = float(op_pos) / max(n_machines - 1, 1)
+            machine_id_norm = float(machine_id) / max(n_machines - 1, 1)
+            job_id_norm = float(job_id) / max(n_jobs - 1, 1)
+
+            job_available = float(state["job_available"][job_id]) / time_scale
+            machine_available = float(state["machine_available"][machine_id]) / time_scale
+
+            current_op_pointer = int(state["job_next_op"][job_id])
+
+            remaining_job_work = float(proc_times[job_id, current_op_pointer:].sum()) if current_op_pointer < n_machines else 0.0
+            remaining_ops = max(n_machines - current_op_pointer, 0)
+
+            machine_remaining_work = 0.0
+            machine_queue_count = 0
+            for j in range(n_jobs):
+                for k in range(n_machines):
+                    oid = j * n_machines + k
+                    if not state["scheduled"][oid] and int(machine_order[j, k]) == machine_id:
+                        machine_remaining_work += float(proc_times[j, k])
+                        machine_queue_count += 1
+
+            earliest_start = max(float(state["job_available"][job_id]), float(state["machine_available"][machine_id]))
+            finish_if_now = earliest_start + duration
+            waiting_gap = abs(float(state["job_available"][job_id]) - float(state["machine_available"][machine_id]))
+
+            tail_after = float(proc_times[job_id, op_pos + 1:].sum()) if op_pos + 1 < n_machines else 0.0
+            critical_score = float(job_prefix[job_id, op_pos] + tail_after) / max_job_work
+            avg_remaining_duration = remaining_job_work / max(float(remaining_ops), 1.0)
+
+            is_bottleneck_machine = float(machine_total_work[machine_id] == machine_total_work.max())
+            is_ready_and_short = float(ready and duration <= np.median(proc_times))
+            is_ready_and_critical = float(ready and critical_score >= 0.75)
+
+            tokens[op_id] = np.array([
+                job_id_norm,
+                op_position,
+                machine_id_norm,
+                duration / max_duration,
+
+                scheduled,
+                ready,
+                predecessor_done,
+                successor_exists,
+
+                job_progress,
+                job_available,
+                machine_available,
+
+                float(op_pos == 0),
+                float(op_pos == n_machines - 1),
+
+                float(current_op_pointer == op_pos),
+                float(current_op_pointer > op_pos),
+
+                1.0,
+
+                remaining_job_work / max_job_work,
+                float(remaining_ops) / n_machines,
+                job_total_work[job_id] / max_job_work,
+                remaining_job_work / max(job_total_work[job_id], 1.0),
+
+                machine_total_work[machine_id] / max_machine_work,
+                machine_remaining_work / max_machine_work,
+                float(machine_queue_count) / T,
+
+                earliest_start / time_scale,
+                finish_if_now / time_scale,
+                waiting_gap / time_scale,
+
+                clb_values[op_id],
+                tail_after / max_job_work,
+                critical_score,
+
+                avg_remaining_duration / max_duration,
+                duration / max(remaining_job_work, 1.0),
+                is_bottleneck_machine,
+            ], dtype=np.float32)
+
+        return np.concatenate([A, tokens], axis=1).astype(np.float32)
         
