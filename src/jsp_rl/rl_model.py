@@ -69,9 +69,6 @@ class JSPGATActorCritic(nn.Module):
 
         self.input_proj = nn.Linear(gat_out_dim, hidden_dim)
 
-        self.pos_embedding = nn.Parameter(torch.zeros(1, n_tokens, hidden_dim))
-        nn.init.normal_(self.pos_embedding, std=0.02)
-
         layer = nn.TransformerEncoderLayer(
             d_model=hidden_dim,
             nhead=n_heads,
@@ -130,7 +127,6 @@ class JSPGATActorCritic(nn.Module):
     def encode(self, tokens):
         z = self.graph_encode(tokens)
         z = self.input_proj(z)
-        z = z + self.pos_embedding[:, : z.size(1), :]
         return self.encoder(z)
 
     def get_logits_and_value(self, tokens, mask=None):
