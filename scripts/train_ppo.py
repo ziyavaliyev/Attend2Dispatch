@@ -208,7 +208,7 @@ def rollout_policy_from_ac(model, instance, cfg, device, encoder=None, latent_di
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default="configs/ppo_10x10.yaml")
-    parser.add_argument("--representation", type=str, default=None, help="Override representation for sweeps.")
+    parser.add_argument("--representation", type=str, default="handcrafted", help="Override representation for sweeps.")
     args = parser.parse_args()
 
     cfg = load_yaml(args.config)
