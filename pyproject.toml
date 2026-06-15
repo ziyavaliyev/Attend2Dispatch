@@ -13,7 +13,8 @@ dependencies = [
     "wandb",
     "graph-jsp-env",
     "torch_geometric",
-    "gym"
+    "gym",
+    "jsp_instance_utils
 ]
 
 [tool.setuptools.packages.find]
