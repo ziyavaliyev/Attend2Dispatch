@@ -24,6 +24,7 @@ from jsp_rl.env_wrapper import (
     make_graph_jsp_env,
     ObservationWrapper,
 )
+from jsp_instance_utils.instances import ft20
 
 def load_val_dataset(path):
     data = torch.load(path, weights_only=False)
@@ -259,7 +260,6 @@ def main():
     train_instances = build_instances(cfg, split="train")
     
     val_instances, baseline_summary = load_val_dataset(cfg["data"]["val_dataset_path"])
-
     print("Validation baselines:")
     for name, metrics in baseline_summary.items():
         print(f"{name}: mean={metrics['mean']:.2f}")
@@ -473,6 +473,16 @@ def main():
         if global_step - last_eval_step >= eval_every:
             last_eval_step = global_step
             val_metrics = evaluate_rl_model(agent, val_instances, baseline_summary, cfg, device, encoder=encoder, latent_dim=latent_dim)
+            ft20_metrics = evaluate_rl_model(
+                agent,
+                [ft20],
+                baseline_summary,
+                cfg,
+                device,
+                encoder=encoder,
+                latent_dim=latent_dim,
+            )
+            
             """if "optimality_gap_percent" in val_metrics:
                 best_optimality_gap = min(best_optimality_gap, val_metrics["optimality_gap_percent"])"""
             writer.add_scalar("val/mean_makespan", val_metrics["mean_makespan"], global_step)
@@ -498,6 +508,7 @@ def main():
                     "charts/SPS": int(global_step / (time.time() - start_time)),
                 }
                 wandb.log(log_dict, step=global_step)
+                wandb.log({"ft20/mean_makespan": ft20_metrics["mean_makespan"]}, step=global_step)
 
             print(
                 f"step={global_step} "
