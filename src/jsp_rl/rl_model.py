@@ -77,6 +77,7 @@ class JSPGATActorCritic(nn.Module):
             activation="gelu",
             batch_first=True,
         )
+        self.skip_norm = nn.LayerNorm(hidden_dim)
         self.encoder = nn.TransformerEncoder(layer, num_layers=n_layers)
 
         self.actor_head = nn.Sequential(
@@ -125,9 +126,11 @@ class JSPGATActorCritic(nn.Module):
         return torch.stack(zs, dim=0)
 
     def encode(self, tokens):
-        z = self.graph_encode(tokens)
-        z = self.input_proj(z)
-        return self.encoder(z)
+        z_gat = self.graph_encode(tokens)
+        z_gat = self.input_proj(z_gat)
+        z_attn = self.encoder(z_gat)
+        z = self.skip_norm(z_attn + z_gat)
+        return z
 
     def get_logits_and_value(self, tokens, mask=None):
         z = self.encode(tokens)
