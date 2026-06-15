@@ -14,7 +14,7 @@ class JSPGATActorCritic(nn.Module):
         gat_heads=4,
         gat_layers=1,
         n_heads=4,
-        n_layers=3,
+        n_layers=1,
         dropout=0.1,
         n_tokens=100,
     ):
