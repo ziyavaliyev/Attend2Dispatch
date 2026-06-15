@@ -11,10 +11,10 @@ class JSPGATActorCritic(nn.Module):
         hidden_dim=128,
         gat_hidden_dim=128,
         gat_out_dim=128,
-        gat_heads=4,
+        gat_heads=8,
         gat_layers=1,
-        n_heads=4,
-        n_layers=1,
+        n_heads=8,
+        n_layers=3,
         dropout=0.1,
         n_tokens=100,
     ):
