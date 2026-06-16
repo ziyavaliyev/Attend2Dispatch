@@ -16,7 +16,7 @@ class JSPGATActorCritic(nn.Module):
         n_heads=4,
         n_layers=3,
         dropout=0.1,
-        n_tokens=400,
+        n_tokens=100,
     ):
         super().__init__()
 
@@ -128,9 +128,7 @@ class JSPGATActorCritic(nn.Module):
     def encode(self, tokens):
         z_gat = self.graph_encode(tokens)
         z_gat = self.input_proj(z_gat)
-        z_attn = self.encoder(z_gat)
-        z = self.skip_norm(z_attn + z_gat)
-        return z
+        return self.encoder(z_gat)
 
     def get_logits_and_value(self, tokens, mask=None):
         z = self.encode(tokens)
