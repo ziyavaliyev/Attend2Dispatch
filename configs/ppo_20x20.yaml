@@ -1,27 +1,25 @@
 seed: 42
 
 data:
-  n_jobs: 20
-  n_machines: 20
+  n_jobs: 10
+  n_machines: 10
   n_train_instances: 1000
   n_val_instances: 100
   min_duration: 1
   max_duration: 99
   val_dataset_path: data/val_dataset_20x20.pt
 
-observation: # possible: raw_graph, encoder, handcrafted, graph_features
-  mode: "handcrafted"
-
-encoder: # relevant only if observation.mode==encoder
-  path: trained_encoder_weights/20x20/gae_egc.pt
-  sample_latent: false   # false = use mu, true = sample mu + eps * std -> relevant only if vgae encoder
-
 model:
   hidden_dim: 128
   n_heads: 4
   n_layers: 3
   dropout: 0.1
-  bc_checkpoint: runs/bc_20x20_transformer/best_model.pt
+
+gat:
+  hidden_dim: 128
+  out_dim: 128
+  heads: 4
+  layers: 1
 
 ppo:
   total_timesteps: 1000000

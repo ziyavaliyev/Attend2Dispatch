@@ -9,19 +9,17 @@ data:
   max_duration: 99
   val_dataset_path: data/val_dataset_6x6.pt
 
-observation: # possible: raw_graph, encoder, handcrafted, graph_features
-  mode: "handcrafted"
-
-encoder: # relevant only if observation.mode==encoder
-  path: trained_encoder_weights/6x6/gae_egc.pt
-  sample_latent: false   # false = use mu, true = sample mu + eps * std -> relevant only if vgae encoder
-
 model:
   hidden_dim: 128
   n_heads: 4
   n_layers: 3
   dropout: 0.1
-  bc_checkpoint: runs/bc_6x6_transformer/best_model.pt
+
+gat:
+  hidden_dim: 128
+  out_dim: 128
+  heads: 4
+  layers: 1
 
 ppo:
   total_timesteps: 1000000
@@ -43,6 +41,6 @@ ppo:
 
 logging:
   use_wandb: true
-  project: RLFormerJSP
+  project: Attend2Dispatch
   run_name: ppo_6x6
   eval_every: 10000
