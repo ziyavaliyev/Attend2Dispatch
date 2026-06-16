@@ -43,6 +43,6 @@ ppo:
 
 logging:
   use_wandb: true
-  project: RLFormerJSP
+  project: Attend2Dispatch
   run_name: ppo_20x20
   eval_every: 10000
