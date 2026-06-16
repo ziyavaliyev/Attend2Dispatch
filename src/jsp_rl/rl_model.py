@@ -16,7 +16,7 @@ class JSPGATActorCritic(nn.Module):
         n_heads=4,
         n_layers=3,
         dropout=0.1,
-        n_tokens=100,
+        n_tokens=400,
     ):
         super().__init__()
 

@@ -473,7 +473,7 @@ def main():
         if global_step - last_eval_step >= eval_every:
             last_eval_step = global_step
             val_metrics = evaluate_rl_model(agent, val_instances, baseline_summary, cfg, device, encoder=encoder, latent_dim=latent_dim)
-            ft20_metrics = evaluate_rl_model(
+            """ft20_metrics = evaluate_rl_model(
                 agent,
                 [ft20],
                 baseline_summary,
@@ -481,7 +481,7 @@ def main():
                 device,
                 encoder=encoder,
                 latent_dim=latent_dim,
-            )
+            )"""
             
             """if "optimality_gap_percent" in val_metrics:
                 best_optimality_gap = min(best_optimality_gap, val_metrics["optimality_gap_percent"])"""
@@ -508,7 +508,7 @@ def main():
                     "charts/SPS": int(global_step / (time.time() - start_time)),
                 }
                 wandb.log(log_dict, step=global_step)
-                wandb.log({"ft20/mean_makespan": ft20_metrics["mean_makespan"]}, step=global_step)
+                #wandb.log({"ft20/mean_makespan": ft20_metrics["mean_makespan"]}, step=global_step)
 
             print(
                 f"step={global_step} "
