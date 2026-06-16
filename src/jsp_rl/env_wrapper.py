@@ -66,7 +66,7 @@ class ObservationWrapper(gym.ObservationWrapper):
         elif self.obs_mode == "graph_features":
             obs_dim = T + self.instance.shape[2] + 2
         elif self.obs_mode == "handcrafted":
-            obs_dim = 132
+            obs_dim = T+32
         else:
             raise ValueError(f"Unknown obs_mode: {self.obs_mode}")
         
