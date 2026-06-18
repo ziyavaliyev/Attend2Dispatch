@@ -150,11 +150,8 @@ def rollout_policy_from_ac(model, instance, cfg, device):
         obs, reward, done, truncated, info = env.step(action)
 
         actions.append(action)
-
-    return {
-        "makespan": info["makespan"],
-        "actions": actions,
-    }
+    env.close()
+    return {"makespan": info["makespan"], "actions": actions}
 
 def main():
     parser = argparse.ArgumentParser()
@@ -178,7 +175,7 @@ def main():
     minibatch_size = batch_size // int(ppo["num_minibatches"])
     num_iterations = int(ppo["total_timesteps"]) // batch_size
 
-    run_name = cfg["logging"]["run_name"] + f"__{seed}__{int(time.time())}"
+    run_name = cfg["logging"]["run_name"] + f"__{int(time.time())}"
 
     if cfg["logging"]["use_wandb"]:
         wandb.init(project=cfg["logging"]["project"], name=run_name, config=cfg)

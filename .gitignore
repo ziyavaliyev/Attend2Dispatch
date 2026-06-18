@@ -3,3 +3,4 @@ runs
 wandb
 Attend2Dispatch.egg-info
 .vscode
+.DS_Store
